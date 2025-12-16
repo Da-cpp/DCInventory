@@ -1,0 +1,45 @@
+# version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+   
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: resilience_db
+    ports:
+      
+      - "5432:5432" 
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck: 
+      test: ["CMD-SHELL", "pg_isready -U postgres -d resilience_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
+  backend:
+    build: 
+      context: ./backend 
+    container_name: ims_fastapi
+    
+    environment:
+      # DATABASE_URL: "postgresql+psycopg2://postgres:postgres@postgres_db:5432/resilience_db"
+      DATABASE_URL: "postgresql://postgres:postgres@postgres_db:5432/resilience_db"
+      SECRET_KEY: "your-secret-key"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy 
+    volumes:
+      - ./backend/app:/app/app 
+
+volumes:
+  pgdata:
+
+# Run:
+#   docker-compose up -d
+
